@@ -20,6 +20,8 @@ const orderItemSchema = new mongoose.Schema({
   },
   productName: { type: String, required: true },
   productSku: { type: String, required: true },
+  productName: { type: String, required: true },
+  productSku: { type: String, required: true },
 }, { _id: false });
 
 const shippingAddressSchema = new mongoose.Schema({
@@ -33,6 +35,7 @@ const shippingAddressSchema = new mongoose.Schema({
 }, { _id: false });
 
 const orderSchema = new mongoose.Schema({
+  orderNumber: { type: String, unique: true },
   orderNumber: { type: String, unique: true },
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -60,13 +63,26 @@ const orderSchema = new mongoose.Schema({
     default: 0,
     min: [0, 'Tax rate cannot be negative'],
     max: [50, 'Tax rate seems unreasonably high'],
+  subtotal: { type: Number, required: true, min: 0 },
+
+  // --- Discount fields (added by feature/rebase-me) ---
+  discountCode: {
+    type: String,
+    uppercase: true,
+    trim: true,
   },
   taxAmount: {
+  discountAmount: {
     type: Number,
     default: 0,
     min: [0, 'Tax amount cannot be negative'],
+    min: [0, 'Discount amount cannot be negative'],
   },
   taxExempt: { type: Boolean, default: false },
+
+  shippingCost: { type: Number, default: 0, min: 0 },
+  totalAmount: { type: Number, required: true, min: 0 },
+  discountDescription: { type: String },
 
   shippingCost: { type: Number, default: 0, min: 0 },
   totalAmount: { type: Number, required: true, min: 0 },
@@ -75,6 +91,7 @@ const orderSchema = new mongoose.Schema({
     enum: ['unpaid', 'paid', 'refunded'],
     default: 'unpaid',
   },
+  notes: { type: String, maxlength: [500, 'Notes cannot exceed 500 characters'] },
   notes: { type: String, maxlength: [500, 'Notes cannot exceed 500 characters'] },
   statusHistory: [{
     status: { type: String, enum: Object.values(ORDER_STATUS) },
@@ -95,5 +112,6 @@ orderSchema.pre('save', function (next) {
 
 orderSchema.index({ user: 1, status: 1, createdAt: -1 });
 orderSchema.index({ orderNumber: 1 });
+orderSchema.index({ discountCode: 1 });
 
 module.exports = mongoose.model('Order', orderSchema);
